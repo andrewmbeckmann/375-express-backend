@@ -45,20 +45,15 @@ function addValues(){
 }
 
 function checkValues(){
-    db.run(`CREATE TABLE IF NOT EXISTS stuff(
+    db.run(`CREATE TABLE IF NOT EXISTS defs(
         id integer PRIMARY KEY AUTOINCREMENT,
-        swag text NOT NULL
+        english text NOT NULL,
+        swedish text NOT NULL
     )`, (error) => {
     
         db.all("SELECT * FROM stuff", (error, rows) => {
             console.log(rows)
         })
-    });
-}
-
-function addSwag(swagName){
-    db.run('INSERT INTO stuff(swag) VALUES (?)', swagName, (err) => {
-        console.log(err);
     });
 }
 
@@ -74,7 +69,7 @@ app.get("/", (req, res)=> {
 })
 
 app.get("/swag", (req, res) => {
-    let sql = 'SELECT * FROM stuff';
+    let sql = 'SELECT * FROM defs';
     db.all(sql, [], (err, rows) => {
     if (err) {
         res.status(500).json({ error: err.message });
