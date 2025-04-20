@@ -71,7 +71,7 @@ app.get("/", (req, res)=> {
     res.send("Hello World")
 })
 
-app.get("/translate", (req, res) => {
+app.post("/translate", (req, res) => {
     let english = req.body.english;
     const sql = 'SELECT swedish FROM defs WHERE english = ?';
     db.get(sql, [english], (err, row) => {
