@@ -21,7 +21,7 @@ function addValues(){
         swedish text NOT NULL
     )`, (error) => {
         if (error) {
-            console.error("Table creation error:", err);
+            console.error("Table creation error:", error);
             return;
         }
         
