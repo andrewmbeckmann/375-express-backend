@@ -44,20 +44,23 @@ function addValues(){
     });
 }
 
-function checkValues(){
-    db.run(`CREATE TABLE IF NOT EXISTS defs(
+function createSavedWords(){
+    db.run(`CREATE TABLE IF NOT EXISTS savedWords(
         id integer PRIMARY KEY AUTOINCREMENT,
-        english text NOT NULL,
-        swedish text NOT NULL
+        word text UNIQUE NOT NULL
     )`, (error) => {
-    
-        db.all("SELECT * FROM stuff", (error, rows) => {
-            console.log(rows)
-        })
+        console.log(error);
+    })
+};
+
+
+function saveWord(word){
+    db.run('INSERT INTO savedWords(word) VALUES (?)', word, (err) => {
+        console.log(err);
     });
 }
 
-checkValues()
+createSavedWords()
 
 var app = express();
 
@@ -68,8 +71,22 @@ app.get("/", (req, res)=> {
     res.send("Hello World")
 })
 
-app.get("/swag", (req, res) => {
-    let sql = 'SELECT * FROM defs';
+app.get("/translate", (req, res) => {
+    let english = req.body.english;
+    const sql = 'SELECT swedish FROM defs WHERE english = ?';
+    db.get(sql, [english], (err, row) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+        } else if (!row) {
+            res.status(404).json({ message: "Translation not found" });
+        } else {
+            res.json({ swedish: row.swedish });
+        }
+    });
+});
+
+app.get("/getsaved", (req, res) => {
+    let sql = 'SELECT * FROM savedWords';
     db.all(sql, [], (err, rows) => {
     if (err) {
         res.status(500).json({ error: err.message });
@@ -79,10 +96,10 @@ app.get("/swag", (req, res) => {
     });
 });
 
-app.post("/addswag", (req, res) => {
-    console.log(req.body.newSwag)
-    const newSwag = req.body.newSwag;
-    addSwag(newSwag);
+app.post("/saveword", (req, res) => {
+    console.log(req.body.word)
+    const word = req.body.word;
+    saveWord(word);
     res.send({"message": "Success"});
 });
 
