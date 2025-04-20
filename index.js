@@ -17,7 +17,7 @@ function addValues(){
 
     db.run(`CREATE TABLE IF NOT EXISTS defs(
         id integer PRIMARY KEY AUTOINCREMENT,
-        english text NOT NULL
+        english text NOT NULL,
         swedish text NOT NULL
     )`, (error) => {
         if (error) {
