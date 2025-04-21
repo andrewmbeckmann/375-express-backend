@@ -57,7 +57,7 @@ function createSavedWords(){
 function createUsers(){
     db.run(`CREATE TABLE IF NOT EXISTS userData(
         id integer PRIMARY KEY AUTOINCREMENT,
-        username text UNIQUE NOT NULL,
+        user text UNIQUE NOT NULL,
         hash text NOT NULL
     )`, (error) => {
         console.log(error);
