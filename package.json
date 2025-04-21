@@ -8,7 +8,6 @@
     "sqlite3": "^5.1.7"
   },
   "name": "expressbackend",
-  "type": "module",
   "version": "1.0.0",
   "description": "my guy",
   "main": "index.js",
