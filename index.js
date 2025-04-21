@@ -108,7 +108,7 @@ app.post("/signup", async (req, res) => {
         res.send("failed to signup")
     });
 
-    res.send("ok")
+    res.send({"message": "Success"});
 });
 
 app.post("/attemptlogin", async (req, res) => {
