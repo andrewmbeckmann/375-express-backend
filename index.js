@@ -2,6 +2,7 @@ const express = require("express");
 const sqlite3 = require("sqlite3");
 const fs = require('fs');
 const cors = require("cors")
+import bcrypt from 'bcrypt'
 
 const db = new sqlite3.Database("./express.db", (err) => {
     if (err) {
@@ -53,6 +54,17 @@ function createSavedWords(){
     })
 };
 
+function createUsers(){
+    db.run(`CREATE TABLE IF NOT EXISTS userData(
+        id integer PRIMARY KEY AUTOINCREMENT,
+        username text UNIQUE NOT NULL,
+        hash text NOT NULL
+    )`, (error) => {
+        console.log(error);
+    })
+};
+
+
 
 function saveWord(word){
     db.run('INSERT INTO savedWords(word) VALUES (?)', word, (err) => {
@@ -60,7 +72,8 @@ function saveWord(word){
     });
 }
 
-createSavedWords()
+createSavedWords();
+createUsers();
 
 var app = express();
 
@@ -81,6 +94,36 @@ app.post("/translate", (req, res) => {
             res.status(404).json({ message: "Translation not found" });
         } else {
             res.json({ swedish: row.swedish });
+        }
+    });
+});
+
+app.post("/signup", async (req, res) => {
+    let user = req.body.user;
+    let password = req.body.password;
+    let hash = await bcrypt.hash(password, 10);
+
+    db.run('INSERT INTO userData(user, hash) VALUES (?, ?)', [user, hash], (err) => {
+        console.log(err); 
+        res.send("failed to signup")
+    });
+
+    res.send("ok")
+});
+
+app.post("/attemptlogin", async (req, res) => {
+    let user = req.body.user;
+    let password = req.body.password;
+    const sql = 'SELECT hash FROM userData WHERE user = ?';
+    db.get(sql, user, async (err, row) => {
+        if (err) {
+            res.status(500).json({ error: err.message });
+        } else if (!row) {
+            res.status(404).json({ message: "User not found" });
+        } else if (await bcrypt.compare(password, row.hash)) {
+            res.json({ user });
+        } else {
+            res.status(401).json({ message: "Invalid password" });
         }
     });
 });
