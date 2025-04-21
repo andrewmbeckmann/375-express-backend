@@ -2,7 +2,7 @@ const express = require("express");
 const sqlite3 = require("sqlite3");
 const fs = require('fs');
 const cors = require("cors")
-import bcrypt from 'bcrypt'
+import bcrypt from 'bcryptjs';
 
 const db = new sqlite3.Database("./express.db", (err) => {
     if (err) {
