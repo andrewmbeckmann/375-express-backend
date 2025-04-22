@@ -171,7 +171,7 @@ app.get("/getsaved", (req, res) => {
     });
 });
 
-app.get("/getusersaved", authenticateToken, (req, res) => {
+app.post("/getusersaved", authenticateToken, (req, res) => {
     let user = req.user.user;
     let sql = 'SELECT * FROM savedUserWords WHERE user = ?';
     db.all(sql, user, (err, rows) => {
