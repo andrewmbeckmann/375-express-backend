@@ -105,7 +105,7 @@ app.post("/signup", async (req, res) => {
 
     db.run('INSERT INTO userData(user, hash) VALUES (?, ?)', [user, hash], (err) => {
         console.log(err); 
-        res.send("failed to signup")
+        return res.status(500).json({ message: "Failed to signup" });
     });
 
     res.send({"message": "Success"});
