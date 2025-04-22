@@ -64,7 +64,15 @@ function createUsers(){
     })
 };
 
-
+function logUsers(){
+    db.all("SELECT * FROM userData", (err, rows) => {
+        if (err) {
+            console.error("Select error:", err);
+        } else {
+            console.log(rows);
+        }
+    });
+}
 
 function saveWord(word){
     db.run('INSERT INTO savedWords(word) VALUES (?)', word, (err) => {
@@ -104,11 +112,14 @@ app.post("/signup", async (req, res) => {
     let hash = await bcrypt.hash(password, 10);
 
     db.run('INSERT INTO userData(user, hash) VALUES (?, ?)', [user, hash], (err) => {
-        console.log(err); 
-        return res.status(500).json({ message: "Failed to signup" });
-    });
+        if (err) {
+            console.log(err);
+            return res.status(500).json({ message: "Failed to signup" });
+        }
 
-    res.send({"message": "Success"});
+        res.json({ message: "Signup successful" });
+    });
+    logUsers();
 });
 
 app.post("/attemptlogin", async (req, res) => {
