@@ -1,8 +1,11 @@
+require("dotenv").config()
+
 const express = require("express");
 const sqlite3 = require("sqlite3");
 const fs = require('fs');
 const cors = require("cors")
 const bcrypt = require('bcryptjs');
+const jwt = require('jsonwebtoken');
 
 const db = new sqlite3.Database("./express.db", (err) => {
     if (err) {
@@ -54,6 +57,16 @@ function createSavedWords(){
     })
 };
 
+function createSavedUserWords(){
+    db.run(`CREATE TABLE IF NOT EXISTS savedUserWords(
+        id integer PRIMARY KEY AUTOINCREMENT,
+        word text NOT NULL,
+        user text NOT NULL
+    )`, (error) => {
+        console.log(error);
+    })
+};
+
 function createUsers(){
     db.run(`CREATE TABLE IF NOT EXISTS userData(
         id integer PRIMARY KEY AUTOINCREMENT,
@@ -80,7 +93,14 @@ function saveWord(word){
     });
 }
 
+function saveUserWord(word, user){
+    db.run('INSERT INTO savedUserWords(word, user) VALUES (?)', [word, user], (err) => {
+        console.log(err);
+    });
+}
+
 createSavedWords();
+createSavedUserWords();
 createUsers();
 
 var app = express();
@@ -132,7 +152,8 @@ app.post("/attemptlogin", async (req, res) => {
         } else if (!row) {
             res.status(404).json({ message: "User not found" });
         } else if (await bcrypt.compare(password, row.hash)) {
-            res.json({ user });
+            const accessToken = jwt.sign({user}, process.env.ACCESS_TOKEN_SECRET)
+            res.json({ accessToken: accessToken });
         } else {
             res.status(401).json({ message: "Invalid password" });
         }
@@ -148,6 +169,37 @@ app.get("/getsaved", (req, res) => {
         res.json(rows);
     }
     });
+});
+
+app.get("/getusersaved", authenticateToken, (req, res) => {
+    let user = req.user.user;
+    let sql = 'SELECT * FROM savedUserWords WHERE user = ?';
+    db.all(sql, user, (err, rows) => {
+    if (err) {
+        res.status(500).json({ error: err.message });
+    } else {
+        res.json(rows);
+    }
+    });
+});
+
+function authenticateToken(req, res, next) {
+    const authHeader = req.headers['authorization']
+    const token = authHeader && authHeader.split(' ')[1]
+    if (token == null) return res.sendStatus(401)
+    
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, user) => {
+        if (err) return res.sendStatus(403)
+        req.user = user
+        next();
+    })
+}
+
+app.post("/saveuserword", authenticateToken, (req, res) => {
+    const word = req.body.word;
+    let user = req.user.user;
+    saveUserWord(word, user);
+    res.send({"message": "Success"});
 });
 
 app.post("/saveword", (req, res) => {
