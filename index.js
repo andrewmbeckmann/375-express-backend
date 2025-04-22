@@ -94,7 +94,7 @@ function saveWord(word){
 }
 
 function saveUserWord(word, user){
-    db.run('INSERT INTO savedUserWords(word, user) VALUES (?)', [word, user], (err) => {
+    db.run('INSERT INTO savedUserWords(word, user) VALUES (?, ?)', [word, user], (err) => {
         console.log(err);
     });
 }
