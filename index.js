@@ -16,26 +16,31 @@ const db = new sqlite3.Database("./express.db", (err) => {
 
 
 function addValues(){
-    const rawData = fs.readFileSync('./swedishdefs.json', 'utf8');
-    const jsonData = JSON.parse(rawData);
+    const swedishData = JSON.parse(fs.readFileSync('./en.json', 'utf8'));
+    const spanishData = JSON.parse(fs.readFileSync('./es.json', 'utf8'));
+
+    const englishKeys = Object.keys(swedishData);
+    const swedishValues = Object.values(swedishData);
+    const spanishKeys = Object.keys(spanishData);
 
     db.run(`CREATE TABLE IF NOT EXISTS defs(
-        id integer PRIMARY KEY AUTOINCREMENT,
-        english text NOT NULL,
-        swedish text NOT NULL
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        english TEXT NOT NULL,
+        swedish TEXT NOT NULL,
+        spanish TEXT NOT NULL
     )`, (error) => {
         if (error) {
             console.error("Table creation error:", error);
             return;
         }
-        
 
-        const preparedSQL = db.prepare("INSERT INTO defs(english, swedish) VALUES (?, ?)");
+        const preparedSQL = db.prepare("INSERT INTO defs(english, swedish, spanish) VALUES (?, ?, ?)");
 
-        for (const [english, swedish] of Object.entries(jsonData)) {
-            preparedSQL.run(english, swedish);
+        for (let i = 0; i < englishKeys.length; i++) {
+            const spanish = spanishKeys[i] || "";
+            preparedSQL.run(englishKeys[i], swedishValues[i], spanish);
         }
-    
+
         preparedSQL.finalize(() => {
             db.all("SELECT * FROM defs", (err, rows) => {
                 if (err) {
@@ -61,7 +66,10 @@ function createSavedUserWords(){
     db.run(`CREATE TABLE IF NOT EXISTS savedUserWords(
         id integer PRIMARY KEY AUTOINCREMENT,
         word text NOT NULL,
-        user text NOT NULL
+        user text NOT NULL,
+        spanish text NOT NULL,
+        english text NOT NULL,
+        UNIQUE(word, user)
     )`, (error) => {
         console.log(error);
     })
@@ -94,8 +102,30 @@ function saveWord(word){
 }
 
 function saveUserWord(word, user){
-    db.run('INSERT INTO savedUserWords(word, user) VALUES (?, ?)', [word, user], (err) => {
-        console.log(err);
+    db.get('SELECT spanish, english FROM defs WHERE swedish = ?', [word], (err, row) => {
+        if (err) {
+            console.error('Error retrieving translations:', err);
+            return;
+        }
+
+        if (!row) {
+            console.error('No translation found for:', word);
+            return;
+        }
+
+        const { spanish, english } = row;
+
+        db.run(
+            'INSERT INTO savedUserWords(word, user, spanish, english) VALUES (?, ?, ?, ?)',
+            [word, user, spanish, english],
+            (err) => {
+                if (err) {
+                    console.error('Error saving user word:', err);
+                } else {
+                    console.log('Saved user word successfully.');
+                }
+            }
+        );
     });
 }
 
@@ -113,9 +143,16 @@ app.get("/", (req, res)=> {
 })
 
 app.post("/translate", (req, res) => {
-    let english = req.body.english;
-    const sql = 'SELECT swedish FROM defs WHERE english = ?';
-    db.get(sql, [english], (err, row) => {
+    let input = req.body.input;
+    let languageName = req.body.languageName;
+
+    const allowedColumns = ['english', 'spanish']; // whitelist of valid column names
+    if (!allowedColumns.includes(languageName)) {
+        return res.status(400).json({ error: "Invalid language name" }); //only triggered maliciously
+    }
+
+    const sql = `SELECT swedish FROM defs WHERE ${languageName} = ?`;
+    db.get(sql, [input], (err, row) => {
         if (err) {
             res.status(500).json({ error: err.message });
         } else if (!row) {
@@ -160,17 +197,6 @@ app.post("/attemptlogin", async (req, res) => {
     });
 });
 
-app.get("/getsaved", (req, res) => {
-    let sql = 'SELECT * FROM savedWords';
-    db.all(sql, [], (err, rows) => {
-    if (err) {
-        res.status(500).json({ error: err.message });
-    } else {
-        res.json(rows);
-    }
-    });
-});
-
 app.post("/getusersaved", authenticateToken, (req, res) => {
     let user = req.user.user;
     let sql = 'SELECT * FROM savedUserWords WHERE user = ?';
@@ -199,13 +225,6 @@ app.post("/saveuserword", authenticateToken, (req, res) => {
     const word = req.body.word;
     let user = req.user.user;
     saveUserWord(word, user);
-    res.send({"message": "Success"});
-});
-
-app.post("/saveword", (req, res) => {
-    console.log(req.body.word)
-    const word = req.body.word;
-    saveWord(word);
     res.send({"message": "Success"});
 });
 
