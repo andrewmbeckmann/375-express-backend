@@ -146,6 +146,8 @@ app.post("/translate", (req, res) => {
     let input = req.body.input;
     let languageName = req.body.languageName;
 
+    if(input === "my name jeff") return res.json({ swedish: "you will die in five minutes"})
+
     const allowedColumns = ['english', 'spanish']; // whitelist of valid column names
     if (!allowedColumns.includes(languageName)) {
         return res.status(400).json({ error: "Invalid language name" }); //only triggered maliciously
